@@ -122,6 +122,47 @@ chmod 755 /tmp/fb2epub
 1. **Check file size limit**:
    ```bash
    export MAX_FILE_SIZE=104857600  # 100MB
+
+### 413 Request Entity Too Large (HTML error)
+
+If you get a 413 error with HTML response (not JSON), it's likely coming from a reverse proxy (nginx) or the HTTP server itself.
+
+**Solutions:**
+
+1. **If using Nginx reverse proxy:**
+   ```bash
+   # Edit nginx config
+   sudo nano /etc/nginx/sites-available/fb2epub
+   
+   # Add or update:
+   client_max_body_size 100M;  # Must match or exceed MAX_FILE_SIZE
+   
+   # Restart nginx
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+2. **Check Docker environment variable:**
+   ```bash
+   # In docker-compose.yml, ensure:
+   environment:
+     - MAX_FILE_SIZE=104857600  # 100MB
+   
+   # Rebuild and restart
+   docker-compose down
+   docker-compose build
+   docker-compose up -d
+   ```
+
+3. **Verify the limit is being applied:**
+   - Check container logs: `docker logs fb2epub`
+   - Look for: "Max file size: 104857600 bytes (100.00 MB)"
+   - If you see 50MB, the environment variable isn't being read
+
+4. **If error persists:**
+   - The HTML response suggests nginx or another proxy is rejecting the request
+   - Check nginx error logs: `sudo tail -f /var/log/nginx/error.log`
+   - Ensure `client_max_body_size` in nginx matches your `MAX_FILE_SIZE`
    ```
 
 2. **Verify file type**: Must be `.fb2` or `.xml`

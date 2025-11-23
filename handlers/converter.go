@@ -37,14 +37,25 @@ type ConversionJob struct {
 func ConvertFB2ToEPUB(c *gin.Context) {
 	cfg := config.Load()
 
-	// Check file size
+	// Check file size - set MaxBytesReader with a buffer to handle large files
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, cfg.MaxFileSize)
 
-	// Parse multipart form
+	// Parse multipart form with increased size limit
+	// Note: This must be set before parsing
 	if err := c.Request.ParseMultipartForm(cfg.MaxFileSize); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "File too large or invalid form data",
-		})
+		// Check if it's a size-related error
+		if err.Error() == "http: request body too large" ||
+			err.Error() == "multipart: NextPart: EOF" ||
+			err.Error() == "http: request body too large" {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+				"error": fmt.Sprintf("File too large. Maximum size: %d bytes (%.2f MB)",
+					cfg.MaxFileSize, float64(cfg.MaxFileSize)/(1024*1024)),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Failed to parse form data: %v", err),
+			})
+		}
 		return
 	}
 

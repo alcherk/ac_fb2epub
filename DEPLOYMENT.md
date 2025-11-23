@@ -284,12 +284,12 @@ sudo apt install -y nginx
 ### 6.2 Create Nginx Configuration
 
 ```bash
-sudo cat > /etc/nginx/sites-available/fb2epub << EOF
+sudo cat > /etc/nginx/sites-available/fb2epub << 'EOF'
 server {
     listen 80;
     server_name your-domain.com;  # Replace with your domain or IP
 
-    client_max_body_size 50M;
+    client_max_body_size 100M;  # Increase to match MAX_FILE_SIZE
 
     location / {
         proxy_pass http://localhost:8080;

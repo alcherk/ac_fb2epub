@@ -72,10 +72,19 @@ func main() {
 		api.GET("/download/:id", handlers.DownloadEPUB)
 	}
 
-	// Start server
+	// Start server with custom configuration
 	addr := ":" + cfg.Port
 	log.Printf("Starting server on %s", addr)
-	if err := router.Run(addr); err != nil {
+	log.Printf("Max file size: %d bytes (%.2f MB)", cfg.MaxFileSize, float64(cfg.MaxFileSize)/(1024*1024))
+	
+	server := &http.Server{
+		Addr:    addr,
+		Handler: router,
+		// Set MaxHeaderBytes to allow large file uploads
+		MaxHeaderBytes: int(cfg.MaxFileSize),
+	}
+	
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
