@@ -75,7 +75,14 @@ async function handleFile(file) {
         });
 
         if (!response.ok) {
-            const error = await response.json();
+            let error;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                error = await response.json();
+            } else {
+                const text = await response.text();
+                throw new Error(`Server error: ${text.substring(0, 100)}`);
+            }
             throw new Error(error.error || 'Failed to upload file');
         }
 
@@ -100,6 +107,19 @@ function startStatusPolling() {
 
         try {
             const response = await fetch(`${API_BASE}/status/${currentJobId}`);
+            
+            if (!response.ok) {
+                let error;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    error = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(`Server error: ${text.substring(0, 100)}`);
+                }
+                throw new Error(error.error || 'Failed to check status');
+            }
+            
             const data = await response.json();
 
             if (data.status === 'completed') {

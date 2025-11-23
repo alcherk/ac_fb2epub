@@ -2,7 +2,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lex/fb2epub/config"
@@ -18,8 +20,30 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Create router
-	router := gin.Default()
+	// Create router without default recovery (we'll add custom JSON recovery)
+	router := gin.New()
+	router.Use(gin.Logger())
+	
+	// Custom recovery middleware to return JSON errors instead of HTML
+	router.Use(func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				// Log the error
+				log.Printf("Panic recovered: %v", err)
+				
+				// Return JSON error for API routes
+				if len(c.Request.URL.Path) >= 4 && c.Request.URL.Path[:4] == "/api" {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": fmt.Sprintf("Internal server error: %v", err),
+					})
+				} else {
+					// For non-API routes, use default behavior
+					c.AbortWithStatus(http.StatusInternalServerError)
+				}
+			}
+		}()
+		c.Next()
+	})
 
 	// Serve static files (CSS, JS)
 	router.Static("/static", "./web/static")
