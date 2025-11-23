@@ -3,7 +3,6 @@ package converter_test
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/lex/fb2epub/converter"
@@ -100,4 +99,3 @@ func TestErrorHandling_ReadOnlyDirectory(t *testing.T) {
 		t.Error("GenerateEPUB() should return error for read-only directory")
 	}
 }
-

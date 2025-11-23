@@ -4,11 +4,19 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/lex/fb2epub/converter"
 )
+
+func getTestDataPath(filename string) string {
+	_, testFile, _, _ := runtime.Caller(0)
+	testDir := filepath.Dir(testFile)
+	projectRoot := filepath.Join(testDir, "..", "..")
+	return filepath.Join(projectRoot, "testdata", filename)
+}
 
 func TestEPUBContent_HTMLEscaping(t *testing.T) {
 	fb2Path := getTestDataPath(filepath.Join("edge-cases", "unicode.fb2"))

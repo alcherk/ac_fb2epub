@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 )
 
 // setupTestRouter is defined in converter_test.go
@@ -133,7 +135,8 @@ func TestFileSize_ErrorMessage(t *testing.T) {
 }
 
 func TestFileSize_SmallFile(t *testing.T) {
-	os.Setenv("TEMP_DIR", t.TempDir())
+	tmpDir := t.TempDir()
+	os.Setenv("TEMP_DIR", tmpDir)
 	os.Setenv("MAX_FILE_SIZE", "10485760") // 10MB
 	defer os.Clearenv()
 
@@ -149,6 +152,23 @@ func TestFileSize_SmallFile(t *testing.T) {
 	// Small file should be accepted
 	if w.Code != http.StatusAccepted {
 		t.Errorf("Expected status %d for small file, got %d. Body: %s", http.StatusAccepted, w.Code, w.Body.String())
+		return
+	}
+
+	// Wait a bit for async processing to complete and cleanup
+	// The input file should be deleted after processing
+	time.Sleep(100 * time.Millisecond)
+	
+	// Clean up any job directories that might have been created
+	// This helps prevent "directory not empty" errors during test cleanup
+	entries, err := os.ReadDir(tmpDir)
+	if err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				// Try to remove the directory, ignore errors
+				_ = os.RemoveAll(filepath.Join(tmpDir, entry.Name()))
+			}
+		}
 	}
 }
 

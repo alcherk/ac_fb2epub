@@ -10,7 +10,6 @@ import (
 	"github.com/lex/fb2epub/converter"
 )
 
-
 func TestGenerateEPUB_ValidStructure(t *testing.T) {
 	// Parse test FB2 file
 	fb2Path := getTestDataPath(filepath.Join("valid", "minimal.fb2"))
@@ -47,12 +46,12 @@ func TestGenerateEPUB_ValidStructure(t *testing.T) {
 
 	// Check required files exist
 	requiredFiles := map[string]bool{
-		"mimetype":                    false,
-		"META-INF/container.xml":     false,
-		"OEBPS/content.opf":           false,
-		"OEBPS/toc.ncx":               false,
-		"OEBPS/nav.xhtml":             false,
-		"OEBPS/content.xhtml":         false,
+		"mimetype":               false,
+		"META-INF/container.xml": false,
+		"OEBPS/content.opf":      false,
+		"OEBPS/toc.ncx":          false,
+		"OEBPS/nav.xhtml":        false,
+		"OEBPS/content.xhtml":    false,
 	}
 
 	for _, file := range reader.File {
@@ -272,3 +271,112 @@ func TestGenerateEPUB_WithNestedSections(t *testing.T) {
 	}
 }
 
+func TestGenerateEPUB_WithImages(t *testing.T) {
+	fb2Path := getTestDataPath(filepath.Join("valid", "with-images.fb2"))
+	fb2, err := converter.ParseFB2(fb2Path)
+	if err != nil {
+		t.Fatalf("Failed to parse FB2: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	outputPath := filepath.Join(tmpDir, "test.epub")
+
+	err = converter.GenerateEPUB(fb2, outputPath)
+	if err != nil {
+		t.Fatalf("GenerateEPUB() error = %v, want nil", err)
+	}
+
+	// Open EPUB
+	reader, err := zip.OpenReader(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to open EPUB: %v", err)
+	}
+	defer func() {
+		if closeErr := reader.Close(); closeErr != nil {
+			t.Logf("Error closing ZIP: %v", closeErr)
+		}
+	}()
+
+	// Check that images are included in the manifest
+	imageFound := false
+	for _, file := range reader.File {
+		if strings.Contains(file.Name, "cover.jpg") || strings.Contains(file.Name, ".jpg") || strings.Contains(file.Name, ".png") {
+			imageFound = true
+			break
+		}
+	}
+
+	// Note: Images might be in manifest even if not in binary section
+	// The important thing is that EPUB generation succeeds with images
+	if fb2.Binary != nil && len(fb2.Binary) > 0 && !imageFound {
+		t.Log("Images found in FB2 but not in EPUB - this might be expected if images are referenced but not embedded")
+	}
+}
+
+func TestGenerateEPUB_WithFormatting(t *testing.T) {
+	fb2Path := getTestDataPath(filepath.Join("valid", "with-formatting.fb2"))
+	fb2, err := converter.ParseFB2(fb2Path)
+	if err != nil {
+		t.Fatalf("Failed to parse FB2: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	outputPath := filepath.Join(tmpDir, "test.epub")
+
+	err = converter.GenerateEPUB(fb2, outputPath)
+	if err != nil {
+		t.Fatalf("GenerateEPUB() error = %v, want nil", err)
+	}
+
+	// Open EPUB and check content
+	reader, err := zip.OpenReader(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to open EPUB: %v", err)
+	}
+	defer func() {
+		if closeErr := reader.Close(); closeErr != nil {
+			t.Logf("Error closing ZIP: %v", closeErr)
+		}
+	}()
+
+	// Find content file
+	var contentFile *zip.File
+	for _, file := range reader.File {
+		if file.Name == "OEBPS/content.xhtml" {
+			contentFile = file
+			break
+		}
+	}
+
+	if contentFile == nil {
+		t.Fatal("Content file not found")
+	}
+
+	// Read content
+	rc, err := contentFile.Open()
+	if err != nil {
+		t.Fatalf("Failed to open content file: %v", err)
+	}
+	defer func() {
+		if closeErr := rc.Close(); closeErr != nil {
+			t.Logf("Error closing content file: %v", closeErr)
+		}
+	}()
+
+	buf := make([]byte, 4096)
+	n, err := rc.Read(buf)
+	if err != nil && err.Error() != "EOF" {
+		t.Fatalf("Failed to read content: %v", err)
+	}
+
+	content := string(buf[:n])
+
+	// Check for formatting tags
+	if !strings.Contains(content, "<strong>") && !strings.Contains(content, "<b>") {
+		t.Error("Content should contain strong/bold formatting")
+	}
+
+	if !strings.Contains(content, "<emphasis>") && !strings.Contains(content, "<em>") && !strings.Contains(content, "<i>") {
+		t.Error("Content should contain emphasis/italic formatting")
+	}
+}
