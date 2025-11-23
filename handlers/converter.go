@@ -22,11 +22,12 @@ var (
 	cleanupMutex      sync.Mutex // Mutex for cleanup operations
 )
 
+// Job status constants
 const (
-	jobStatusPending    = "pending"
-	jobStatusProcessing = "processing"
-	jobStatusCompleted  = "completed"
-	jobStatusFailed     = "failed"
+	JobStatusPending    = "pending"
+	JobStatusProcessing = "processing"
+	JobStatusCompleted  = "completed"
+	JobStatusFailed     = "failed"
 )
 
 // ConversionJob represents a file conversion job
@@ -166,19 +167,19 @@ func processConversion(jobID, inputPath, outputPath string, cfg *config.Config) 
 	// Parse FB2
 	fb2, err := converter.ParseFB2(inputPath)
 	if err != nil {
-		job.Status = jobStatusFailed
+		job.Status = JobStatusFailed
 		job.Error = fmt.Sprintf("Failed to parse FB2: %v", err)
 		return
 	}
 
 	// Generate EPUB
 	if err := converter.GenerateEPUB(fb2, outputPath); err != nil {
-		job.Status = jobStatusFailed
+		job.Status = JobStatusFailed
 		job.Error = fmt.Sprintf("Failed to generate EPUB: %v", err)
 		return
 	}
 
-	job.Status = jobStatusCompleted
+	job.Status = JobStatusCompleted
 
 	// Increment completed job counter and trigger cleanup if needed
 	cleanupMutex.Lock()
@@ -213,11 +214,11 @@ func GetConversionStatus(c *gin.Context) {
 		"created_at": job.CreatedAt,
 	}
 
-	if job.Status == jobStatusCompleted {
+	if job.Status == JobStatusCompleted {
 		response["download_url"] = fmt.Sprintf("/api/v1/download/%s", jobID)
 	}
 
-	if job.Status == jobStatusFailed {
+	if job.Status == JobStatusFailed {
 		response["error"] = job.Error
 	}
 
@@ -236,7 +237,7 @@ func DownloadEPUB(c *gin.Context) {
 		return
 	}
 
-	if job.Status != jobStatusCompleted {
+	if job.Status != JobStatusCompleted {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Conversion not completed yet",
 		})
@@ -302,7 +303,7 @@ func cleanupOldJobs(cfg *config.Config) {
 					shouldCleanup = true
 				}
 			}
-		} else if job.Status == jobStatusCompleted || job.Status == jobStatusFailed {
+		} else if job.Status == JobStatusCompleted || job.Status == JobStatusFailed {
 			// Job is completed or failed, check if older than 1 hour
 			if now.Sub(job.CreatedAt) > time.Hour {
 				shouldCleanup = true
@@ -326,4 +327,19 @@ func cleanupOldJobs(cfg *config.Config) {
 		// Suppress unused variable warning - in production, log this
 		_ = cleanedCount
 	}
+}
+
+// GetConversionJob returns a conversion job by ID (for testing)
+func GetConversionJob(jobID string) *ConversionJob {
+	return conversionJobs[jobID]
+}
+
+// SetConversionJob sets a conversion job (for testing)
+func SetConversionJob(job *ConversionJob) {
+	conversionJobs[job.ID] = job
+}
+
+// DeleteConversionJob deletes a conversion job (for testing)
+func DeleteConversionJob(jobID string) {
+	delete(conversionJobs, jobID)
 }

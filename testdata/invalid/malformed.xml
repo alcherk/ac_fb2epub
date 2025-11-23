@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+  <description>
+    <title-info>
+      <book-title>Malformed Book</book-title>
+    <!-- Missing closing tag
+  </description>
+  <body>
+    <p>Content</p>
+  </body>
+</FictionBook>
+
