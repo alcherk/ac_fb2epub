@@ -6,6 +6,7 @@ server {
     server_name your-domain.com;
 
     # Increase client body size limit (default is 1MB)
+    # MUST be set in the server block, not just http block
     client_max_body_size 100M;
     
     # Increase buffer sizes for large file uploads
@@ -18,6 +19,9 @@ server {
     send_timeout 300s;
 
     location / {
+        # Can also set in location block if needed
+        # client_max_body_size 100M;
+        
         proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -27,6 +31,10 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Important: Increase proxy buffer sizes for large uploads
+        proxy_request_buffering off;
+        proxy_buffering off;
     }
 }
 

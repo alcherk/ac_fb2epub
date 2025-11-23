@@ -410,6 +410,30 @@ mkdir -p /tmp/fb2epub
 chmod 755 /tmp/fb2epub
 ```
 
+### 413 Request Entity Too Large (HTML error)
+If you see an HTML 413 error page, it's likely from nginx or another reverse proxy:
+
+1. **Check if nginx is running:**
+   ```bash
+   sudo systemctl status nginx
+   ```
+
+2. **Update nginx configuration:**
+   ```bash
+   sudo nano /etc/nginx/nginx.conf
+   # Add in http block: client_max_body_size 100M;
+   
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+3. **Or use the helper script:**
+   ```bash
+   ./fix-nginx-413.sh
+   ```
+
+See `TROUBLESHOOTING.md` for detailed instructions.
+
 ### File too large
 Increase MAX_FILE_SIZE:
 ```bash
