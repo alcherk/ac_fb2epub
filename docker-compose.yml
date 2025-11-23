@@ -12,7 +12,7 @@ services:
       - PORT=8080
       - ENVIRONMENT=production
       - TEMP_DIR=/app/temp
-      - MAX_FILE_SIZE=52428800
+      - MAX_FILE_SIZE=104857600
     volumes:
       - temp_data:/app/temp
     restart: unless-stopped

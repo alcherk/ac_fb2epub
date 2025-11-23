@@ -49,7 +49,7 @@ EXPOSE 8080
 ENV PORT=8080
 ENV ENVIRONMENT=production
 ENV TEMP_DIR=/app/temp
-ENV MAX_FILE_SIZE=52428800
+ENV MAX_FILE_SIZE=104857600
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

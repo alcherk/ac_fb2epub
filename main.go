@@ -24,6 +24,9 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	
+	// Set maximum multipart form size (default is 32MB, increase to match config)
+	router.MaxMultipartMemory = cfg.MaxFileSize
+	
 	// Custom recovery middleware to return JSON errors instead of HTML
 	router.Use(func(c *gin.Context) {
 		defer func() {

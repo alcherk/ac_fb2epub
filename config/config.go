@@ -3,6 +3,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 )
 
 // Config holds application configuration.
@@ -31,7 +32,11 @@ func Load() *Config {
 	}
 
 	maxFileSize := int64(50 * 1024 * 1024) // 50MB default
-	_ = os.Getenv("MAX_FILE_SIZE")         // Reserved for future use
+	if sizeStr := os.Getenv("MAX_FILE_SIZE"); sizeStr != "" {
+		if parsedSize, err := strconv.ParseInt(sizeStr, 10, 64); err == nil && parsedSize > 0 {
+			maxFileSize = parsedSize
+		}
+	}
 
 	return &Config{
 		Port:        port,
