@@ -11,6 +11,7 @@ import (
 
 // ParseFB2 parses an FB2 file and returns a FictionBook struct
 func ParseFB2(filePath string) (*models.FictionBook, error) {
+	//nolint:gosec // Path is controlled and validated
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)

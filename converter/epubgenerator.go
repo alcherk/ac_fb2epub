@@ -24,11 +24,13 @@ const (
 func GenerateEPUB(fb2 *models.FictionBook, outputPath string) error {
 	// Create output directory if it doesn't exist
 	dir := filepath.Dir(outputPath)
+	//nolint:gosec // 0755 needed for proper file access
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	// Create EPUB file (which is a ZIP archive)
+	//nolint:gosec // Path is controlled and validated
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create EPUB file: %w", err)
@@ -272,7 +274,8 @@ func buildTOC(fb2 *models.FictionBook) []*TOCEntry {
 	var entries []*TOCEntry
 
 	// Process body sections
-	for i, section := range fb2.Body.Section {
+	for i := range fb2.Body.Section {
+		section := fb2.Body.Section[i]
 		if entry := buildTOCFromSection(&section, fmt.Sprintf("section-%d", i)); entry != nil {
 			entries = append(entries, entry)
 		}
@@ -286,7 +289,8 @@ func buildTOCFromSection(section *models.Section, baseID string) *TOCEntry {
 	if section.Title == nil || len(section.Title.Paragraph) == 0 {
 		// If no title but has subsections, still process children
 		var children []*TOCEntry
-		for i, subSection := range section.Section {
+		for i := range section.Section {
+			subSection := section.Section[i]
 			if child := buildTOCFromSection(&subSection, fmt.Sprintf("%s-sub-%d", baseID, i)); child != nil {
 				children = append(children, child)
 			}
@@ -303,7 +307,8 @@ func buildTOCFromSection(section *models.Section, baseID string) *TOCEntry {
 
 	// Extract title text
 	var titleParts []string
-	for _, p := range section.Title.Paragraph {
+	for i := range section.Title.Paragraph {
+		p := section.Title.Paragraph[i]
 		text := processParagraph(&p, nil) // TOC doesn't need images
 		if text != "" {
 			titleParts = append(titleParts, text)
@@ -316,7 +321,8 @@ func buildTOCFromSection(section *models.Section, baseID string) *TOCEntry {
 
 	// Process children
 	var children []*TOCEntry
-	for i, subSection := range section.Section {
+	for i := range section.Section {
+		subSection := section.Section[i]
 		if child := buildTOCFromSection(&subSection, fmt.Sprintf("%s-sub-%d", baseID, i)); child != nil {
 			children = append(children, child)
 		}
@@ -460,7 +466,8 @@ func addMainContent(writer *zip.Writer, fb2 *models.FictionBook, imageMap map[st
 
 	// Process body title if present
 	if len(fb2.Body.Title.Paragraph) > 0 {
-		for _, p := range fb2.Body.Title.Paragraph {
+		for i := range fb2.Body.Title.Paragraph {
+			p := fb2.Body.Title.Paragraph[i]
 			text := processParagraph(&p, imageMap)
 			bodyContent.WriteString(fmt.Sprintf("<h1>%s</h1>\n", text))
 		}
@@ -500,7 +507,8 @@ func processSectionWithID(
 			level = 6
 		}
 		tag := fmt.Sprintf("h%d", level)
-		for _, p := range section.Title.Paragraph {
+		for i := range section.Title.Paragraph {
+			p := section.Title.Paragraph[i]
 			text := processParagraph(&p, nil) // Titles don't need images
 			// Ensure sectionID is safe for XML (no special characters)
 			safeID := html.EscapeString(sectionID)
@@ -509,7 +517,8 @@ func processSectionWithID(
 	}
 
 	// Add paragraphs
-	for _, p := range section.Paragraph {
+	for i := range section.Paragraph {
+		p := section.Paragraph[i]
 		text := processParagraph(&p, imageMap)
 		if text != "" {
 			fmt.Fprintf(builder, "<p>%s</p>\n", text)
@@ -527,12 +536,14 @@ func processSectionWithID(
 	}
 
 	// Process poems
-	for _, poem := range section.Poem {
+	for i := range section.Poem {
+		poem := section.Poem[i]
 		processPoem(builder, &poem)
 	}
 
 	// Process citations
-	for _, cite := range section.Cite {
+	for i := range section.Cite {
+		cite := section.Cite[i]
 		processCite(builder, &cite, imageMap)
 	}
 }
@@ -551,7 +562,8 @@ func processParagraph(p *models.Paragraph, imageMap map[string]*ImageInfo) strin
 	// but we process elements to preserve their attributes
 
 	// Process links first (they might be nested in strong/emphasis)
-	for _, link := range p.Link {
+	for i := range p.Link {
+		link := p.Link[i]
 		linkHTML := processLink(&link, imageMap)
 		// Try to find and replace the link text in the paragraph text
 		if link.Text != "" {
@@ -571,7 +583,8 @@ func processParagraph(p *models.Paragraph, imageMap map[string]*ImageInfo) strin
 	}
 
 	// Process strong elements (may contain nested elements)
-	for _, strong := range p.Strong {
+	for i := range p.Strong {
+		strong := p.Strong[i]
 		strongHTML := processStrong(&strong, imageMap)
 		// Try to find and replace
 		if strong.Text != "" || len(strong.Link) > 0 {
@@ -594,7 +607,8 @@ func processParagraph(p *models.Paragraph, imageMap map[string]*ImageInfo) strin
 	}
 
 	// Process emphasis elements (may contain nested elements)
-	for _, emphasis := range p.Emphasis {
+	for i := range p.Emphasis {
+		emphasis := p.Emphasis[i]
 		emphasisHTML := processEmphasis(&emphasis, imageMap)
 		// Try to find and replace
 		if emphasis.Text != "" || len(emphasis.Link) > 0 {
@@ -647,7 +661,8 @@ func processStrong(s *models.Strong, imageMap map[string]*ImageInfo) string {
 	}
 
 	// Process nested links
-	for _, link := range s.Link {
+	for i := range s.Link {
+		link := s.Link[i]
 		linkHTML := processLink(&link, imageMap)
 		if s.Text != "" && link.Text != "" {
 			escapedLinkText := html.EscapeString(link.Text)
@@ -664,13 +679,15 @@ func processStrong(s *models.Strong, imageMap map[string]*ImageInfo) string {
 	}
 
 	// Process nested emphasis
-	for _, emphasis := range s.Emphasis {
+	for i := range s.Emphasis {
+		emphasis := s.Emphasis[i]
 		emphasisHTML := processEmphasis(&emphasis, imageMap)
 		result.WriteString(emphasisHTML)
 	}
 
 	// Process nested strong
-	for _, nestedStrong := range s.Strong {
+	for i := range s.Strong {
+		nestedStrong := s.Strong[i]
 		nestedHTML := processStrong(&nestedStrong, imageMap)
 		result.WriteString(nestedHTML)
 	}
@@ -687,7 +704,8 @@ func processEmphasis(e *models.Emphasis, imageMap map[string]*ImageInfo) string 
 	}
 
 	// Process nested links
-	for _, link := range e.Link {
+	for i := range e.Link {
+		link := e.Link[i]
 		linkHTML := processLink(&link, imageMap)
 		if e.Text != "" && link.Text != "" {
 			escapedLinkText := html.EscapeString(link.Text)
@@ -704,13 +722,15 @@ func processEmphasis(e *models.Emphasis, imageMap map[string]*ImageInfo) string 
 	}
 
 	// Process nested strong
-	for _, strong := range e.Strong {
+	for i := range e.Strong {
+		strong := e.Strong[i]
 		strongHTML := processStrong(&strong, imageMap)
 		result.WriteString(strongHTML)
 	}
 
 	// Process nested emphasis
-	for _, nestedEmphasis := range e.Emphasis {
+	for i := range e.Emphasis {
+		nestedEmphasis := e.Emphasis[i]
 		nestedHTML := processEmphasis(&nestedEmphasis, imageMap)
 		result.WriteString(nestedHTML)
 	}
@@ -735,10 +755,12 @@ func extractStrongText(s *models.Strong) string {
 	for _, link := range s.Link {
 		result.WriteString(link.Text)
 	}
-	for _, emphasis := range s.Emphasis {
+	for i := range s.Emphasis {
+		emphasis := s.Emphasis[i]
 		result.WriteString(extractEmphasisText(&emphasis))
 	}
-	for _, nestedStrong := range s.Strong {
+	for i := range s.Strong {
+		nestedStrong := s.Strong[i]
 		result.WriteString(extractStrongText(&nestedStrong))
 	}
 	return result.String()
@@ -751,10 +773,12 @@ func extractEmphasisText(e *models.Emphasis) string {
 	for _, link := range e.Link {
 		result.WriteString(link.Text)
 	}
-	for _, strong := range e.Strong {
+	for i := range e.Strong {
+		strong := e.Strong[i]
 		result.WriteString(extractStrongText(&strong))
 	}
-	for _, nestedEmphasis := range e.Emphasis {
+	for i := range e.Emphasis {
+		nestedEmphasis := e.Emphasis[i]
 		result.WriteString(extractEmphasisText(&nestedEmphasis))
 	}
 	return result.String()
@@ -784,7 +808,8 @@ func processPoem(builder *strings.Builder, poem *models.Poem) {
 
 func processCite(builder *strings.Builder, cite *models.Cite, imageMap map[string]*ImageInfo) {
 	builder.WriteString("<blockquote class=\"cite\">\n")
-	for _, p := range cite.Paragraph {
+	for i := range cite.Paragraph {
+		p := cite.Paragraph[i]
 		text := processParagraph(&p, imageMap)
 		fmt.Fprintf(builder, "<p>%s</p>\n", text)
 	}

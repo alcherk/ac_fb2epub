@@ -50,6 +50,7 @@ ENV PORT=8080
 ENV ENVIRONMENT=production
 ENV TEMP_DIR=/app/temp
 ENV MAX_FILE_SIZE=104857600
+ENV CLEANUP_TRIGGER_COUNT=10
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

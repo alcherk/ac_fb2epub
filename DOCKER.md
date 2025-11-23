@@ -52,6 +52,7 @@ environment:
   - ENVIRONMENT=production
   - TEMP_DIR=/app/temp
   - MAX_FILE_SIZE=52428800
+  - CLEANUP_TRIGGER_COUNT=10
 ```
 
 Or when using `docker run`:

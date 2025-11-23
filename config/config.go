@@ -8,10 +8,11 @@ import (
 
 // Config holds application configuration.
 type Config struct {
-	Port        string
-	Environment string
-	TempDir     string
-	MaxFileSize int64 // in bytes
+	Port                string
+	Environment         string
+	TempDir             string
+	MaxFileSize         int64 // in bytes
+	CleanupTriggerCount int   // Number of completed conversions before cleanup
 }
 
 // Load reads configuration from environment variables and returns a Config instance.
@@ -38,10 +39,18 @@ func Load() *Config {
 		}
 	}
 
+	cleanupTriggerCount := 10 // Default: cleanup after 10 completed conversions
+	if countStr := os.Getenv("CLEANUP_TRIGGER_COUNT"); countStr != "" {
+		if parsedCount, err := strconv.Atoi(countStr); err == nil && parsedCount > 0 {
+			cleanupTriggerCount = parsedCount
+		}
+	}
+
 	return &Config{
-		Port:        port,
-		Environment: env,
-		TempDir:     tempDir,
-		MaxFileSize: maxFileSize,
+		Port:                port,
+		Environment:         env,
+		TempDir:             tempDir,
+		MaxFileSize:         maxFileSize,
+		CleanupTriggerCount: cleanupTriggerCount,
 	}
 }

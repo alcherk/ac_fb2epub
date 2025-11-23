@@ -75,6 +75,7 @@ export PORT=8080                    # Server port
 export ENVIRONMENT=development      # development or production
 export TEMP_DIR=/tmp/fb2epub        # Temporary directory
 export MAX_FILE_SIZE=52428800       # Max file size in bytes (50MB)
+export CLEANUP_TRIGGER_COUNT=10     # Cleanup temp folder after N conversions
 
 ./fb2epub
 ```

@@ -7,6 +7,7 @@ A Go-based microservice that converts FictionBook 2.0 (FB2) files to EPUB format
 - **Web UI** - Beautiful, modern web interface for easy file conversion
 - RESTful API for FB2 to EPUB conversion
 - Asynchronous job processing
+- **Automatic cleanup** - Temp folder cleanup triggered by number of conversions
 - Health check endpoint
 - Configurable via environment variables
 - Cross-platform support (macOS, Linux)
@@ -68,6 +69,7 @@ export PORT=8080
 export ENVIRONMENT=development
 export TEMP_DIR=/tmp/fb2epub
 export MAX_FILE_SIZE=52428800  # 50MB in bytes
+export CLEANUP_TRIGGER_COUNT=10  # Cleanup temp folder after N conversions
 ```
 
 2. Run the service:
@@ -312,6 +314,7 @@ Environment variables:
 - `ENVIRONMENT` - Environment mode: development/production (default: development)
 - `TEMP_DIR` - Temporary directory for file processing (default: /tmp/fb2epub)
 - `MAX_FILE_SIZE` - Maximum file size in bytes (default: 52428800 = 50MB)
+- `CLEANUP_TRIGGER_COUNT` - Number of completed conversions before triggering cleanup (default: 10)
 
 ## Project Structure
 

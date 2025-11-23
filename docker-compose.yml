@@ -13,6 +13,7 @@ services:
       - ENVIRONMENT=production
       - TEMP_DIR=/app/temp
       - MAX_FILE_SIZE=104857600
+      - CLEANUP_TRIGGER_COUNT=10
     volumes:
       - temp_data:/app/temp
     restart: unless-stopped

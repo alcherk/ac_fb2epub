@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lex/fb2epub/config"
@@ -23,17 +24,17 @@ func main() {
 	// Create router without default recovery (we'll add custom JSON recovery)
 	router := gin.New()
 	router.Use(gin.Logger())
-	
+
 	// Set maximum multipart form size (default is 32MB, increase to match config)
 	router.MaxMultipartMemory = cfg.MaxFileSize
-	
+
 	// Custom recovery middleware to return JSON errors instead of HTML
 	router.Use(func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
 				// Log the error
 				log.Printf("Panic recovered: %v", err)
-				
+
 				// Return JSON error for API routes
 				if len(c.Request.URL.Path) >= 4 && c.Request.URL.Path[:4] == "/api" {
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -76,14 +77,15 @@ func main() {
 	addr := ":" + cfg.Port
 	log.Printf("Starting server on %s", addr)
 	log.Printf("Max file size: %d bytes (%.2f MB)", cfg.MaxFileSize, float64(cfg.MaxFileSize)/(1024*1024))
-	
+
 	server := &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 30 * time.Second, // Prevent Slowloris attacks
 		// Set MaxHeaderBytes to allow large file uploads
 		MaxHeaderBytes: int(cfg.MaxFileSize),
 	}
-	
+
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,11 @@ import (
 	"github.com/lex/fb2epub/converter"
 )
 
-var conversionJobs = make(map[string]*ConversionJob)
+var (
+	conversionJobs    = make(map[string]*ConversionJob)
+	completedJobCount = 0        // Counter for completed conversions
+	cleanupMutex      sync.Mutex // Mutex for cleanup operations
+)
 
 const (
 	jobStatusPending    = "pending"
@@ -87,6 +92,7 @@ func ConvertFB2ToEPUB(c *gin.Context) {
 
 	// Create temp directory for this job
 	// Ensure base temp directory exists first
+	//nolint:gosec // 0755 needed for Docker volume mounts
 	if err := os.MkdirAll(cfg.TempDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to create base temporary directory: %v", err),
@@ -95,6 +101,7 @@ func ConvertFB2ToEPUB(c *gin.Context) {
 	}
 
 	tempDir := filepath.Join(cfg.TempDir, jobID)
+	//nolint:gosec // 0755 needed for Docker volume mounts
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to create temporary directory: %v", err),
@@ -104,6 +111,7 @@ func ConvertFB2ToEPUB(c *gin.Context) {
 
 	// Save uploaded file
 	inputPath := filepath.Join(tempDir, "input.fb2")
+	//nolint:gosec // Path is controlled and validated
 	outFile, err := os.Create(inputPath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -146,7 +154,7 @@ func ConvertFB2ToEPUB(c *gin.Context) {
 	})
 }
 
-func processConversion(jobID, inputPath, outputPath string, _ *config.Config) {
+func processConversion(jobID, inputPath, outputPath string, cfg *config.Config) {
 	job := conversionJobs[jobID]
 	defer func() {
 		// Cleanup input file after processing
@@ -171,6 +179,20 @@ func processConversion(jobID, inputPath, outputPath string, _ *config.Config) {
 	}
 
 	job.Status = jobStatusCompleted
+
+	// Increment completed job counter and trigger cleanup if needed
+	cleanupMutex.Lock()
+	completedJobCount++
+	shouldCleanup := completedJobCount >= cfg.CleanupTriggerCount
+	if shouldCleanup {
+		completedJobCount = 0 // Reset counter
+	}
+	cleanupMutex.Unlock()
+
+	if shouldCleanup {
+		// Trigger cleanup asynchronously
+		go cleanupOldJobs(cfg)
+	}
 }
 
 // GetConversionStatus returns the status of a conversion job
@@ -235,4 +257,73 @@ func DownloadEPUB(c *gin.Context) {
 
 	// Send file
 	c.File(job.FilePath)
+}
+
+// cleanupOldJobs removes old job directories from the temp folder
+func cleanupOldJobs(cfg *config.Config) {
+	// Use mutex to prevent concurrent cleanup operations
+	cleanupMutex.Lock()
+	defer cleanupMutex.Unlock()
+
+	// Get all directories in temp folder
+	entries, err := os.ReadDir(cfg.TempDir)
+	if err != nil {
+		return
+	}
+
+	now := time.Now()
+	cleanedCount := 0
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		// Check if it's a valid UUID (job ID format)
+		jobID := entry.Name()
+		if len(jobID) != 36 { // UUIDs are 36 characters
+			continue
+		}
+
+		// Get job info
+		job, exists := conversionJobs[jobID]
+		jobDir := filepath.Join(cfg.TempDir, jobID)
+
+		// Cleanup conditions:
+		// 1. Job doesn't exist in memory (old job) and directory is older than 1 hour
+		// 2. Job is completed and older than 1 hour
+		// 3. Job is failed and older than 1 hour
+		shouldCleanup := false
+		if !exists {
+			// Job not in memory, check directory age
+			info, err := os.Stat(jobDir)
+			if err == nil {
+				if now.Sub(info.ModTime()) > time.Hour {
+					shouldCleanup = true
+				}
+			}
+		} else if job.Status == jobStatusCompleted || job.Status == jobStatusFailed {
+			// Job is completed or failed, check if older than 1 hour
+			if now.Sub(job.CreatedAt) > time.Hour {
+				shouldCleanup = true
+			}
+		}
+
+		if shouldCleanup {
+			// Remove the entire job directory
+			if err := os.RemoveAll(jobDir); err == nil {
+				cleanedCount++
+				// Remove from memory if exists
+				if exists {
+					delete(conversionJobs, jobID)
+				}
+			}
+		}
+	}
+
+	// Log cleanup result (in production, you might want to use a proper logger)
+	if cleanedCount > 0 {
+		// Suppress unused variable warning - in production, log this
+		_ = cleanedCount
+	}
 }
