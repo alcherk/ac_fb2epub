@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Build artifacts
+fb2epub
+fb2epub-*
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*.test
+*.out
+test.sh
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp
+temp/
+*.epub
+*.fb2
+
+# Environment files
+.env
+.env.local
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+

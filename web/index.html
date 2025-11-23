@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FB2 to EPUB Converter</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 FB2 to EPUB Converter</h1>
+            <p class="subtitle">Convert your FictionBook 2.0 files to EPUB format</p>
+        </header>
+
+        <main>
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-area" id="uploadArea">
+                    <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h2>Drop your FB2 file here</h2>
+                    <p>or click to browse</p>
+                    <input type="file" id="fileInput" accept=".fb2,.xml" hidden>
+                    <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+
+            <div class="processing-section" id="processingSection" style="display: none;">
+                <div class="status-card">
+                    <div class="spinner"></div>
+                    <h2>Processing your file...</h2>
+                    <p id="statusMessage">Uploading and converting your FB2 file to EPUB format.</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-section" id="resultSection" style="display: none;">
+                <div class="result-card success">
+                    <svg class="success-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <h2>Conversion Complete!</h2>
+                    <p>Your EPUB file is ready to download.</p>
+                    <button class="btn-primary" id="downloadBtn">
+                        Download EPUB
+                    </button>
+                    <button class="btn-secondary" id="convertAnotherBtn">
+                        Convert Another File
+                    </button>
+                </div>
+            </div>
+
+            <div class="error-section" id="errorSection" style="display: none;">
+                <div class="result-card error">
+                    <svg class="error-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h2>Conversion Failed</h2>
+                    <p id="errorMessage">An error occurred during conversion.</p>
+                    <button class="btn-primary" id="retryBtn">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>FB2 to EPUB Converter Service</p>
+            <p class="footer-links">
+                <a href="/health" target="_blank">Health Check</a> |
+                <a href="https://github.com/lex/fb2epub" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
