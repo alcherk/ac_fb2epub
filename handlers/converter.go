@@ -75,10 +75,18 @@ func ConvertFB2ToEPUB(c *gin.Context) {
 	jobID := uuid.New().String()
 
 	// Create temp directory for this job
+	// Ensure base temp directory exists first
+	if err := os.MkdirAll(cfg.TempDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to create base temporary directory: %v", err),
+		})
+		return
+	}
+
 	tempDir := filepath.Join(cfg.TempDir, jobID)
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create temporary directory",
+			"error": fmt.Sprintf("Failed to create temporary directory: %v", err),
 		})
 		return
 	}

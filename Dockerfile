@@ -35,8 +35,9 @@ COPY --from=builder /build/fb2epub .
 # Copy web UI files
 COPY --from=builder /build/web ./web
 
-# Create temp directory
-RUN mkdir -p /app/temp && chown -R appuser:appgroup /app
+# Create temp directory with proper permissions
+# Use 777 to allow subdirectory creation when using volume mounts
+RUN mkdir -p /app/temp && chmod 777 /app/temp && chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
